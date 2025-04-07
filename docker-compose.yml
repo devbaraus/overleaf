@@ -11,8 +11,6 @@ services:
                 condition: service_healthy
             redis:
                 condition: service_started
-        ports:
-            - 80:80
         stop_grace_period: 60s
         volumes:
             - overleaf_share:/var/lib/overleaf
