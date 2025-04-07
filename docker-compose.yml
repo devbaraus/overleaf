@@ -5,7 +5,7 @@ services:
         # Server Pro users:
         # image: quay.io/sharelatex/sharelatex-pro
         image: sharelatex/sharelatex
-        container_name: sharelatex
+        container_name: overleaf_sharelatex
         depends_on:
             mongo:
                 condition: service_healthy
@@ -101,7 +101,7 @@ services:
     mongo:
         restart: always
         image: mongo:6.0
-        container_name: mongo
+        container_name: overleaf_mongo
         command: '--replSet overleaf'
         volumes:
             - overleaf_mongo:/data/db
@@ -123,7 +123,7 @@ services:
     redis:
         restart: always
         image: redis:6.2
-        container_name: redis
+        container_name: overleaf_redis
         volumes:
             - overleaf_redis:/data
         networks:
