@@ -15,12 +15,14 @@ services:
             - 80:80
         stop_grace_period: 60s
         volumes:
-            - ~/sharelatex_data:/var/lib/overleaf
+            - overleaf_share:/var/lib/overleaf
             ########################################################################
             ####  Server Pro: Uncomment the following line to mount the docker  ####
             ####             socket, required for Sibling Containers to work    ####
             ########################################################################
             # - /var/run/docker.sock:/var/run/docker.sock
+        networks:
+            - default
         environment:
 
             OVERLEAF_APP_NAME: Overleaf Community Edition
@@ -102,7 +104,7 @@ services:
         container_name: mongo
         command: '--replSet overleaf'
         volumes:
-            - ~/mongo_data:/data/db
+            - overleaf_mongo:/data/db
             - ./bin/shared/mongodb-init-replica-set.js:/docker-entrypoint-initdb.d/mongodb-init-replica-set.js
         environment:
           MONGO_INITDB_DATABASE: sharelatex
@@ -115,13 +117,17 @@ services:
             interval: 10s
             timeout: 10s
             retries: 5
+        networks:
+            - default
 
     redis:
         restart: always
         image: redis:6.2
         container_name: redis
         volumes:
-            - ~/redis_data:/data
+            - overleaf_redis:/data
+        networks:
+            - default
 
     # ldap:
     #    restart: always
@@ -142,3 +148,11 @@ services:
     #     volumes:
     #       - /var/run/docker.sock:/tmp/docker.sock:ro
     #       - /home/overleaf/tmp:/etc/nginx/certs
+
+networks:
+    default:
+
+volumes:
+    overleaf_redis:
+    overleaf_mongo:
+    overleaf_share:
