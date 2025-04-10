@@ -27,6 +27,11 @@ class RecurlySubscription {
    * @param {Date} props.periodEnd
    * @param {string} props.collectionMethod
    * @param {RecurlySubscriptionChange} [props.pendingChange]
+   * @param {string} [props.service]
+   * @param {string} [props.state]
+   * @param {Date|null} [props.trialPeriodEnd]
+   * @param {Date|null} [props.pausePeriodStart]
+   * @param {number|null} [props.remainingPauseCycles]
    */
   constructor(props) {
     this.id = props.id
@@ -44,6 +49,11 @@ class RecurlySubscription {
     this.periodEnd = props.periodEnd
     this.collectionMethod = props.collectionMethod
     this.pendingChange = props.pendingChange ?? null
+    this.service = props.service ?? 'recurly'
+    this.state = props.state ?? 'active'
+    this.trialPeriodEnd = props.trialPeriodEnd ?? null
+    this.pausePeriodStart = props.pausePeriodStart ?? null
+    this.remainingPauseCycles = props.remainingPauseCycles ?? null
   }
 
   /**
@@ -425,12 +435,62 @@ class RecurlyPlan {
 }
 
 /**
+ * A coupon in the payment provider
+ */
+class RecurlyCoupon {
+  /**
+   * @param {object} props
+   * @param {string} props.code
+   * @param {string} props.name
+   * @param {string} props.description
+   */
+  constructor(props) {
+    this.code = props.code
+    this.name = props.name
+    this.description = props.description
+  }
+}
+
+/**
+ * An account in the payment provider
+ */
+class RecurlyAccount {
+  /**
+   * @param {object} props
+   * @param {string} props.code
+   * @param {string} props.email
+   * @param {boolean} props.hasPastDueInvoice
+   */
+  constructor(props) {
+    this.code = props.code
+    this.email = props.email
+    this.hasPastDueInvoice = props.hasPastDueInvoice ?? false
+  }
+}
+
+/**
  * Returns whether the given plan code is a standalone AI plan
  *
  * @param {string} planCode
  */
 function isStandaloneAiAddOnPlanCode(planCode) {
   return STANDALONE_AI_ADD_ON_CODES.includes(planCode)
+}
+
+/**
+ * Returns whether subscription change will have have the ai bundle once the change is processed
+ *
+ * @param {RecurlySubscriptionChange} subscriptionChange The subscription change object coming from Recurly
+ *
+ * @return {boolean}
+ */
+function subscriptionChangeIsAiAssistUpgrade(subscriptionChange) {
+  return Boolean(
+    isStandaloneAiAddOnPlanCode(subscriptionChange.nextPlanCode) ||
+      subscriptionChange.nextAddOns?.some(
+        addOn => addOn.code === AI_ADD_ON_CODE
+      )
+  )
 }
 
 module.exports = {
@@ -446,6 +506,9 @@ module.exports = {
   CreditCardPaymentMethod,
   RecurlyAddOn,
   RecurlyPlan,
+  RecurlyCoupon,
+  RecurlyAccount,
   isStandaloneAiAddOnPlanCode,
+  subscriptionChangeIsAiAssistUpgrade,
   RecurlyImmediateCharge,
 }

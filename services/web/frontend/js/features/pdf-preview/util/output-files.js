@@ -4,6 +4,7 @@ import { enablePdfCaching } from './pdf-caching-flags'
 import { debugConsole } from '@/utils/debugging'
 import { dirname, findEntityByPath } from '@/features/file-tree/util/path'
 import '@/utils/readable-stream-async-iterator-polyfill'
+import { EDITOR_SESSION_ID } from '@/features/pdf-preview/util/metrics'
 
 // Warnings that may disappear after a second LaTeX pass
 const TRANSIENT_WARNING_REGEX = /^(Reference|Citation).+undefined on input line/
@@ -15,10 +16,13 @@ export function handleOutputFiles(outputFiles, projectId, data) {
   const outputFile = outputFiles.get('output.pdf')
   if (!outputFile) return null
 
+  outputFile.editorId = outputFile.editorId || EDITOR_SESSION_ID
+
   // build the URL for viewing the PDF in the preview UI
-  const params = new URLSearchParams({
-    compileGroup: data.compileGroup,
-  })
+  const params = new URLSearchParams()
+  if (data.compileGroup) {
+    params.set('compileGroup', data.compileGroup)
+  }
 
   if (data.clsiServerId) {
     params.set('clsiserverid', data.clsiServerId)
@@ -34,10 +38,14 @@ export function handleOutputFiles(outputFiles, projectId, data) {
     data.pdfDownloadDomain
   )}?${params}`
 
-  // build the URL for downloading the PDF
-  params.set('popupDownload', 'true') // save PDF download as file
+  if (data.fromCache) {
+    outputFile.pdfDownloadUrl = outputFile.downloadURL
+  } else {
+    // build the URL for downloading the PDF
+    params.set('popupDownload', 'true') // save PDF download as file
 
-  outputFile.pdfDownloadUrl = `/download/project/${projectId}/build/${outputFile.build}/output/output.pdf?${params}`
+    outputFile.pdfDownloadUrl = `/download/project/${projectId}/build/${outputFile.build}/output/output.pdf?${params}`
+  }
 
   return outputFile
 }

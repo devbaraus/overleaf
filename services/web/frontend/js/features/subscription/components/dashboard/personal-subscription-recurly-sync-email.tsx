@@ -20,7 +20,7 @@ function PersonalSubscriptionRecurlySyncEmail() {
 
   if (!personalSubscription || !('recurly' in personalSubscription)) return null
 
-  const recurlyEmail = personalSubscription.recurly.account.email
+  const recurlyEmail = personalSubscription.recurly.accountEmail
 
   if (!userEmail || recurlyEmail === userEmail) return null
 
@@ -51,9 +51,6 @@ function PersonalSubscriptionRecurlySyncEmail() {
                   disabled={isLoading}
                   isLoading={isLoading}
                   loadingLabel={t('updating')}
-                  bs3Props={{
-                    loading: isLoading ? t('updating') + '…' : t('update'),
-                  }}
                 >
                   {t('update')}
                 </OLButton>

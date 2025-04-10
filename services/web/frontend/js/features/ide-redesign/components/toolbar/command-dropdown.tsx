@@ -21,7 +21,7 @@ type GroupStructure<T> = {
   title: string
   children: Array<Entry<T>>
 }
-type MenuSectionStructure<T> = {
+export type MenuSectionStructure<T = CommandId> = {
   title?: string
   id: string
   children: Array<Entry<T>>
@@ -59,6 +59,26 @@ const CommandDropdown = ({
         )
       })}
     </MenuBarDropdown>
+  )
+}
+
+export const CommandSection = ({
+  section: sectionStructure,
+}: {
+  section: MenuSectionStructure<CommandId>
+}) => {
+  const { registry } = useCommandRegistry()
+  const section = populateSectionOrGroup(sectionStructure, registry)
+  if (section.children.length === 0) {
+    return null
+  }
+  return (
+    <>
+      {section.title && <DropdownHeader>{section.title}</DropdownHeader>}
+      {section.children.map(child => (
+        <CommandDropdownChild item={child} key={child.id} />
+      ))}
+    </>
   )
 }
 
@@ -107,7 +127,12 @@ function populateSectionOrGroup<
     children: children
       .map(child => {
         if (typeof child !== 'string') {
-          return populateSectionOrGroup(child, registry)
+          const populatedChild = populateSectionOrGroup(child, registry)
+          if (populatedChild.children.length === 0) {
+            // Skip empty groups
+            return undefined
+          }
+          return populatedChild
         }
         const command = registry.get(child)
         if (command) {

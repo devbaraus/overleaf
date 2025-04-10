@@ -3,10 +3,7 @@ import {
   DropdownHeader,
 } from '@/features/ui/components/bootstrap-5/dropdown-menu'
 import { MenuBar } from '@/shared/components/menu-bar/menu-bar'
-import {
-  MenuBarDropdown,
-  NestedMenuBarDropdown,
-} from '@/shared/components/menu-bar/menu-bar-dropdown'
+import { MenuBarDropdown } from '@/shared/components/menu-bar/menu-bar-dropdown'
 import { MenuBarOption } from '@/shared/components/menu-bar/menu-bar-option'
 import { useTranslation } from 'react-i18next'
 import ChangeLayoutOptions from './change-layout-options'
@@ -17,7 +14,13 @@ import MaterialIcon from '@/shared/components/material-icon'
 import OLSpinner from '@/features/ui/components/ol/ol-spinner'
 import { useLayoutContext } from '@/shared/context/layout-context'
 import { useCommandProvider } from '@/features/ide-react/hooks/use-command-provider'
-import CommandDropdown, { MenuStructure } from './command-dropdown'
+import CommandDropdown, {
+  CommandSection,
+  MenuSectionStructure,
+  MenuStructure,
+} from './command-dropdown'
+import { useUserSettingsContext } from '@/shared/context/user-settings-context'
+import { useRailContext } from '../../contexts/rail-context'
 
 export const ToolbarMenuBar = () => {
   const { t } = useTranslation()
@@ -30,6 +33,7 @@ export const ToolbarMenuBar = () => {
   useCommandProvider(
     () => [
       {
+        type: 'command',
         label: t('show_version_history'),
         handler: () => {
           setView(view === 'history' ? 'editor' : 'history')
@@ -54,28 +58,134 @@ export const ToolbarMenuBar = () => {
     []
   )
 
+  const editMenuStructure: MenuStructure = useMemo(
+    () => [
+      {
+        id: 'edit-undo-redo',
+        children: ['undo', 'redo'],
+      },
+      {
+        id: 'edit-search',
+        children: ['find', 'select-all'],
+      },
+    ],
+    []
+  )
+
+  const insertMenuStructure: MenuStructure = useMemo(
+    () => [
+      {
+        id: 'insert-latex',
+        children: [
+          {
+            id: 'insert-math-group',
+            title: t('math'),
+            children: ['insert-inline-math', 'insert-display-math'],
+          },
+          'insert-symbol',
+          {
+            id: 'insert-figure-group',
+            title: t('figure'),
+            children: [
+              'insert-figure-from-computer',
+              'insert-figure-from-project-files',
+              'insert-figure-from-another-project',
+              'insert-figure-from-url',
+            ],
+          },
+          'insert-table',
+          'insert-citation',
+          'insert-link',
+          'insert-cross-reference',
+        ],
+      },
+      {
+        id: 'insert-comment',
+        children: ['comment'],
+      },
+    ],
+    [t]
+  )
+
+  const formatMenuStructure: MenuStructure = useMemo(
+    () => [
+      {
+        id: 'format-text',
+        children: ['format-bold', 'format-italics'],
+      },
+      {
+        id: 'format-list',
+        children: [
+          'format-bullet-list',
+          'format-numbered-list',
+          'format-increase-indentation',
+          'format-decrease-indentation',
+        ],
+      },
+      {
+        id: 'format-paragraph',
+        title: t('paragraph_styles'),
+        children: [
+          'format-style-normal',
+          'format-style-section',
+          'format-style-subsection',
+          'format-style-subsubsection',
+          'format-style-paragraph',
+          'format-style-subparagraph',
+        ],
+      },
+    ],
+    [t]
+  )
+
+  const pdfControlsMenuSectionStructure: MenuSectionStructure = useMemo(
+    () => ({
+      title: t('pdf_preview'),
+      id: 'pdf-controls',
+      children: [
+        'view-pdf-presentation-mode',
+        'view-pdf-zoom-in',
+        'view-pdf-zoom-out',
+        'view-pdf-fit-width',
+        'view-pdf-fit-height',
+      ],
+    }),
+    [t]
+  )
+
+  const {
+    userSettings: { mathPreview },
+    setUserSettings,
+  } = useUserSettingsContext()
+
+  const toggleMathPreview = useCallback(() => {
+    setUserSettings(prev => {
+      return {
+        ...prev,
+        mathPreview: !prev.mathPreview,
+      }
+    })
+  }, [setUserSettings])
+
+  const { setActiveModal } = useRailContext()
+  const openKeyboardShortcutsModal = useCallback(() => {
+    setActiveModal('keyboard-shortcuts')
+  }, [setActiveModal])
+  const openContactUsModal = useCallback(() => {
+    setActiveModal('contact-us')
+  }, [setActiveModal])
   return (
     <MenuBar
       className="ide-redesign-toolbar-menu-bar"
       id="toolbar-menu-bar-item"
     >
       <CommandDropdown menu={fileMenuStructure} title={t('file')} id="file" />
-      <MenuBarDropdown
-        title={t('edit')}
-        id="edit"
-        className="ide-redesign-toolbar-dropdown-toggle-subdued ide-redesign-toolbar-button-subdued"
-      >
-        <MenuBarOption title="Undo" />
-        <MenuBarOption title="Redo" />
-        <DropdownDivider />
-        <MenuBarOption title="Cut" />
-        <MenuBarOption title="Copy" />
-        <MenuBarOption title="Paste" />
-        <MenuBarOption title="Paste without formatting" />
-        <DropdownDivider />
-        <MenuBarOption title="Find" />
-        <MenuBarOption title="Select all" />
-      </MenuBarDropdown>
+      <CommandDropdown menu={editMenuStructure} title={t('edit')} id="edit" />
+      <CommandDropdown
+        menu={insertMenuStructure}
+        title={t('insert')}
+        id="insert"
+      />
       <MenuBarDropdown
         title={t('view')}
         id="view"
@@ -83,71 +193,41 @@ export const ToolbarMenuBar = () => {
       >
         <ChangeLayoutOptions />
         <DropdownHeader>Editor settings</DropdownHeader>
-        <MenuBarOption title="Show breadcrumbs" />
-        <MenuBarOption title="Show equation preview" />
-        <DropdownHeader>PDF preview</DropdownHeader>
-        <MenuBarOption title="Presentation mode" />
-        <MenuBarOption title="Zoom in" />
-        <MenuBarOption title="Zoom out" />
-        <MenuBarOption title="Fit to width" />
-        <MenuBarOption title="Fit to height" />
+        <MenuBarOption
+          title={t('show_equation_preview')}
+          trailingIcon={mathPreview ? 'check' : undefined}
+          onClick={toggleMathPreview}
+        />
+        <CommandSection section={pdfControlsMenuSectionStructure} />
       </MenuBarDropdown>
-      <MenuBarDropdown
-        title={t('insert')}
-        id="insert"
-        className="ide-redesign-toolbar-dropdown-toggle-subdued ide-redesign-toolbar-button-subdued"
-      >
-        <NestedMenuBarDropdown title="Math" id="math">
-          <MenuBarOption title="Generate from text or image" />
-          <DropdownDivider />
-          <MenuBarOption title="Inline math" />
-          <MenuBarOption title="Display math" />
-        </NestedMenuBarDropdown>
-        <MenuBarOption title="Symbol" />
-        <NestedMenuBarDropdown title="Figure" id="figure">
-          <MenuBarOption title="Upload from computer" />
-          <MenuBarOption title="From project files" />
-          <MenuBarOption title="From another project" />
-          <MenuBarOption title="From URL" />
-        </NestedMenuBarDropdown>
-        <MenuBarOption title="Table" />
-        <MenuBarOption title="Citation" />
-        <MenuBarOption title="Link" />
-        <MenuBarOption title="Cross-reference" />
-        <DropdownDivider />
-        <MenuBarOption title="Comment" />
-      </MenuBarDropdown>
-      <MenuBarDropdown
+      <CommandDropdown
+        menu={formatMenuStructure}
         title={t('format')}
         id="format"
-        className="ide-redesign-toolbar-dropdown-toggle-subdued ide-redesign-toolbar-button-subdued"
-      >
-        <MenuBarOption title="Bold" />
-        <MenuBarOption title="Italics" />
-        <DropdownDivider />
-        <MenuBarOption title="Bullet list" />
-        <MenuBarOption title="Numbered list" />
-        <MenuBarOption title="Increase indentation" />
-        <MenuBarOption title="Decrease indentation" />
-        <DropdownDivider />
-        <DropdownHeader>Paragraph styles</DropdownHeader>
-        <MenuBarOption title="Normal text" />
-        <MenuBarOption title="Section" />
-        <MenuBarOption title="Subsection" />
-        <MenuBarOption title="Subsubsection" />
-        <MenuBarOption title="Paragraph" />
-        <MenuBarOption title="Subparagraph" />
-      </MenuBarDropdown>
+      />
       <MenuBarDropdown
         title={t('help')}
         id="help"
         className="ide-redesign-toolbar-dropdown-toggle-subdued ide-redesign-toolbar-button-subdued"
       >
-        <MenuBarOption title="Keyboard shortcuts" />
-        <MenuBarOption title="Documentation" />
+        <MenuBarOption
+          title={t('keyboard_shortcuts')}
+          onClick={openKeyboardShortcutsModal}
+        />
+        <MenuBarOption
+          title={t('documentation')}
+          href="/learn"
+          target="_blank"
+          rel="noopener noreferrer"
+        />
         <DropdownDivider />
-        <MenuBarOption title="Contact us" />
-        <MenuBarOption title="Give feedback" />
+        <MenuBarOption title={t('contact_us')} onClick={openContactUsModal} />
+        <MenuBarOption
+          title={t('give_feedback')}
+          href="https://forms.gle/soyVStc5qDx9na1Z6"
+          target="_blank"
+          rel="noopener noreferrer"
+        />
         <DropdownDivider />
         <SwitchToOldEditorMenuBarOption />
         <MenuBarOption
