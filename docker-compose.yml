@@ -5,6 +5,9 @@ services:
         # image: quay.io/sharelatex/sharelatex-pro
         image: sharelatex/sharelatex
         container_name: overleaf_sharelatex
+        # docker compose exec sharelatex bash -c "tlmgr update --self; tlmgr update --all; tlmgr install scheme-full"
+        ports:
+            - 80:80
         depends_on:
             mongo:
                 condition: service_healthy
