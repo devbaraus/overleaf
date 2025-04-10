@@ -20,7 +20,10 @@ services:
             # - /var/run/docker.sock:/var/run/docker.sock
         networks:
             - default
+            - nginx-proxy
         environment:
+            VIRTUAL_HOST: overleaf.bcc.ifg.edu.br
+            LETSENCRYPT_HOST: overleaf.bcc.ifg.edu.br
 
             OVERLEAF_APP_NAME: Overleaf Community Edition
 
@@ -150,6 +153,8 @@ services:
 
 networks:
     default:
+    nginx-proxy:
+        external: true
 
 volumes:
     overleaf_redis:
